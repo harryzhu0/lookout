@@ -2,26 +2,33 @@
 
 import { useEffect, useRef, useState } from "react";
 
+export type ChatMessage = {
+    sender: string;
+    text: string;
+    timestamp: number;
+};
+
 export default function chat() {
-  const [messages, setMessages] = useState<string[]>([]);
-  const wsRef = useRef<WebSocket | null>(null);
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
+    const wsRef = useRef<WebSocket | null>(null);
 
-  useEffect(() => {
-    const socket = new WebSocket("ws://localhost:8080");
-    wsRef.current = socket;
+    useEffect(() => {
+        const socket = new WebSocket("ws://localhost:8080");
+        wsRef.current = socket;
 
-    socket.onmessage = (event) => {
-      setMessages((prev) => [...prev, event.data]);
+        socket.onmessage = (event) => {
+            const msg: ChatMessage = JSON.parse(event.data);
+            setMessages((prev) => [...prev, msg]);
+        };
+
+        return () => socket.close();
+    }, []);
+
+    const sendMessage = (sender: string, text: string) => {
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ sender, text }));
+        }
     };
 
-    return () => socket.close();
-  }, []);
-
-  const sendMessage = (msg: string) => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(msg);
-    }
-  };
-
-  return { messages, sendMessage };
+    return { messages, sendMessage };
 }

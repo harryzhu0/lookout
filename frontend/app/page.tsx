@@ -1,63 +1,74 @@
 "use client";
 
-import { useState } from "react";
-import chat from "../hooks/chat";
+import { useEffect, useState } from "react";
+import chat, { ChatMessage } from "../hooks/chat";
 
-export default function Home() {
+export default function Page() {
     const { messages, sendMessage } = chat();
+
+    const [username, setUsername] = useState("");
     const [input, setInput] = useState("");
 
-    const handleSend = () => {
-        if (input.trim().length === 0) return;
-        sendMessage(input);
-        setInput("");
-    };
+    // Load username from localStorage
+    useEffect(() => {
+        const saved = localStorage.getItem("username");
+        if (saved) setUsername(saved);
+    }, []);
+
+    // Save username
+    useEffect(() => {
+        if (username) localStorage.setItem("username", username);
+    }, [username]);
+
+    if (!username) {
+        return (
+            <div style={{ padding: 20 }}>
+                <h2>Enter your username</h2>
+                <input
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Your name"
+                />
+            </div>
+        );
+    }
 
     return (
-        <div style={{ padding: 20, fontFamily: "sans-serif" }}>
-            <h1>LOOKOUT Chat</h1>
+        <div style={{ padding: 20 }}>
+            <h2>LOOKOUT Chat</h2>
 
-            <div
-                style={{
-                    border: "1px solid #ccc",
-                    height: 300,
-                    overflowY: "auto",
-                    padding: 10,
-                    marginBottom: 10,
-                    borderRadius: 6,
+            <div style={{ marginBottom: 20 }}>
+                {messages.map((m: ChatMessage, i: number) => {
+                    const time = new Date(m.timestamp).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit"
+                    });
+
+                    return (
+                        <div key={i}>
+                            <strong>{m.sender}</strong> <span style={{ opacity: 0.6 }}>({time})</span>: {m.text}
+                        </div>
+                    );
+                })}
+
+            </div>
+
+            <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Type a message"
+            />
+
+            <button
+                onClick={() => {
+                    if (input.trim()) {
+                        sendMessage(username, input);
+                        setInput("");
+                    }
                 }}
             >
-                {messages.map((m, i) => (
-                    <div key={i} style={{ marginBottom: 4 }}>
-                        {m}
-                    </div>
-                ))}
-            </div>
-
-            <div style={{ display: "flex", gap: 8 }}>
-                <input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    style={{
-                        flex: 1,
-                        padding: 8,
-                        borderRadius: 4,
-                        border: "1px solid #aaa",
-                    }}
-                />
-                <button
-                    onClick={handleSend}
-                    style={{
-                        padding: "8px 16px",
-                        borderRadius: 4,
-                        background: "#0070f3",
-                        color: "white",
-                        border: "none",
-                    }}
-                >
-                    Send
-                </button>
-            </div>
+                Send
+            </button>
         </div>
     );
 }
