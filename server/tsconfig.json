@@ -3,10 +3,12 @@
     "target": "ES2022",
     "module": "ES2022",
     "moduleResolution": "node",
-    "outDir": "src",
+    "outDir": "dist",
     "rootDir": "src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true
-  }
+  },
+  "include": ["src"],
+  "exclude": ["dist"]
 }

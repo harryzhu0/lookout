@@ -2,12 +2,12 @@
   "name": "chat-server",
   "version": "1.0.0",
   "description": "Simple WebSocket chat server",
-  "main": "dist/server.js",
+  "main": "src/server.js",
   "type": "module",
   "scripts": {
     "dev": "ts-node-esm src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node src/server.ts"
   },
   "dependencies": {
     "ws": "^8.17.0"
