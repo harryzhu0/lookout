@@ -4,14 +4,14 @@ A real-time chat application with GitHub OAuth authentication and persistent fil
 
 ## Features
 
-- ✅ GitHub OAuth authentication
-- ✅ Persistent chat history stored in `history.json`
-- ✅ Real-time message sending and receiving
-- ✅ User-friendly interface with authentication
-- ✅ Input validation and sanitization
-- ✅ Size limits to prevent DoS attacks
-- ✅ Secure session management with HTTP-only cookies
-- ✅ Type-safe codebase with strict TypeScript checking
+- GitHub OAuth authentication
+- Persistent chat history stored in `history.json`
+- Real-time message sending and receiving
+- User-friendly interface with authentication
+- Input validation and sanitization
+- Size limits to prevent DoS attacks
+- Secure session management with HTTP-only cookies
+- Type-safe codebase with strict TypeScript checking
 
 ## Security Features
 
@@ -33,46 +33,21 @@ A real-time chat application with GitHub OAuth authentication and persistent fil
 npm install
 ```
 
-### 2. Create GitHub OAuth Application
+This will install all of the dependancies required for this project and
+allow you to run it locally. 
 
-1. Go to https://github.com/settings/developers
-2. Click **New OAuth App**
-3. Fill in the following:
-   - **Application name**: LOOKOUT
-   - **Homepage URL**: `http://localhost:3000` (for development)
-   - **Authorization callback URL**: `http://localhost:3000/api/auth/callback/github`
-4. Copy your **Client ID** and **Client Secret**
+### 2. Run Server
 
-### 3. Set Environment Variables
-
-Create a `.env.local` file in the root directory:
-
-```env
-GITHUB_ID=your_github_client_id
-GITHUB_SECRET=your_github_client_secret
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your_random_secret_key_here
-```
-
-**To generate a random secret:**
-```bash
-openssl rand -base64 32
-```
-
-Or on Windows PowerShell:
-```powershell
-[System.Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
-```
-
-**Important**: The application will fail to start if these environment variables are not set.
-
-### 4. Run the Development Server
+This is basically a fully packaged system. All you need to do is one command
+from the ones listed below
 
 ```bash
 npm run dev
+npm start
 ```
 
-The application will be available at `http://localhost:3000`
+This will open up a server on `http://localhost:3000` which you can then
+connect to via a web browser.
 
 ## How to Use
 

@@ -116,7 +116,7 @@ token.sub could be undefined
 
 ## Vulnerability Scan Results
 
-✅ **npm audit**: 0 vulnerabilities found
+**npm audit**: 0 vulnerabilities found
 
 ## Security Best Practices Implemented
 
