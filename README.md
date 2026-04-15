@@ -1,6 +1,6 @@
 # Lookout
 
-This is Lookout, Outlook but it's a messaging service. Lookout, Outlook. Get it?
+Lookout is a lightweight, real‑time chat service designed for fast development, easy deployment, and maximum chaos. It provides a simple WebSocket‑based backend paired with a clean web interface, making it ideal for small teams, prototypes, or anyone who wants a chat service without the lag and feel of enterprise email platforms that rhyme with… Outlook.
 
 ## How to Run
 
