@@ -22,10 +22,14 @@ async function getMongoClient(): Promise<MongoClient> {
   }
 
   const client = new MongoClient(MONGODB_URI, {
-    serverSelectionTimeoutMS: 10000,
-    socketTimeoutMS: 10000,
-    connectTimeoutMS: 10000,
+    serverSelectionTimeoutMS: 15000,
+    socketTimeoutMS: 15000,
+    connectTimeoutMS: 15000,
+    maxPoolSize: 5,
+    minPoolSize: 1,
+    maxIdleTimeMS: 30000,
     retryWrites: false,
+    retryReads: false,
   });
   await client.connect();
   cachedClient = client;
