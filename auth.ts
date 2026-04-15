@@ -1,34 +1,39 @@
 import NextAuth from "next-auth";
 import GitHub from "next-auth/providers/github";
 
-// Validate required environment variables
-const githubId = process.env.GITHUB_ID;
-const githubSecret = process.env.GITHUB_SECRET;
-const nextAuthSecret = process.env.NEXTAUTH_SECRET;
+// Runtime validation function
+function validateEnvironmentVariables() {
+  const githubId = process.env.GITHUB_ID;
+  const githubSecret = process.env.GITHUB_SECRET;
+  const nextAuthSecret = process.env.NEXTAUTH_SECRET;
 
-if (!githubId || !githubSecret) {
-  throw new Error("Missing required environment variables: GITHUB_ID and GITHUB_SECRET must be set");
-}
+  if (!githubId || !githubSecret) {
+    throw new Error("Missing required environment variables: GITHUB_ID and GITHUB_SECRET must be set");
+  }
 
-if (!nextAuthSecret) {
-  throw new Error("Missing required environment variable: NEXTAUTH_SECRET must be set");
+  if (!nextAuthSecret) {
+    throw new Error("Missing required environment variable: NEXTAUTH_SECRET must be set");
+  }
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     GitHub({
-      clientId: githubId,
-      clientSecret: githubSecret,
+      clientId: process.env.GITHUB_ID!,
+      clientSecret: process.env.GITHUB_SECRET!,
       allowDangerousEmailAccountLinking: false,
     }),
   ],
-  secret: nextAuthSecret,
+  secret: process.env.NEXTAUTH_SECRET,
   pages: {
     signIn: "/",
     error: "/",
   },
   callbacks: {
     async jwt({ token, account }) {
+      // Validate environment variables at runtime
+      validateEnvironmentVariables();
+
       if (account) {
         token.accessToken = account.access_token;
       }
