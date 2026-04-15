@@ -21,7 +21,12 @@ async function getMongoClient(): Promise<MongoClient> {
     return cachedClient;
   }
 
-  const client = new MongoClient(MONGODB_URI);
+  const client = new MongoClient(MONGODB_URI, {
+    serverSelectionTimeoutMS: 10000,
+    socketTimeoutMS: 10000,
+    connectTimeoutMS: 10000,
+    retryWrites: false,
+  });
   await client.connect();
   cachedClient = client;
   return client;
