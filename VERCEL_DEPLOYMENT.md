@@ -20,7 +20,23 @@
 
 3. **Deploy**
    - Vercel will auto-detect Next.js
+   - The `vercel.json` provides basic framework configuration
    - Click "Deploy"
+
+## Configuration
+
+The `vercel.json` file contains minimal configuration:
+```json
+{
+  "framework": "nextjs"
+}
+```
+
+This tells Vercel to use the Next.js framework, which automatically handles:
+- API routes in `app/api/`
+- Static file serving
+- Build optimization
+- Function runtimes
 
 ## GitHub OAuth Setup
 
@@ -35,6 +51,7 @@
 - **Build fails**: Check that all environment variables are set
 - **Auth issues**: Verify GitHub OAuth callback URLs match your Vercel domain
 - **API routes**: Ensure NextAuth configuration is correct
+- **Runtime errors**: Vercel automatically manages Node.js runtime for Next.js apps
 
 ## Environment Variables Reference
 
