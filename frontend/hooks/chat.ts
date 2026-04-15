@@ -14,6 +14,7 @@ export default function chat() {
 
     useEffect(() => {
         const socket = new WebSocket("ws://localhost:8080");
+        // const socket = new WebSocket("https://curly-space-tribble-5g7qrrxwxrw427wqg-8080.app.github.dev/")
         wsRef.current = socket;
 
         socket.onmessage = (event) => {
