@@ -93,7 +93,7 @@ All endpoints require authentication (GitHub OAuth session):
 - Verify that `history.json` exists (auto-created on first message)
 - Check file permissions in the project directory
 - Ensure you're authenticated (signed in with GitHub)
-
+- If deployed on Vercel, note that local file storage is not persistent and may fail in production- For MongoDB storage, set `MONGODB_URI` and optionally `MONGODB_DB` in your environment
 **GitHub login not working?**
 - Verify `GITHUB_ID` and `GITHUB_SECRET` are correct in `.env.local`
 - Ensure the OAuth app callback URL matches your setup

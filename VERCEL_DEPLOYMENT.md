@@ -61,6 +61,8 @@ This tells Vercel to use the Next.js framework, which automatically handles:
 | `GITHUB_SECRET` | Yes | GitHub OAuth Client Secret | From GitHub OAuth App settings |
 | `NEXTAUTH_SECRET` | Yes | Random secret for JWT tokens | Generate with `openssl rand -base64 32` |
 | `NEXTAUTH_URL` | Auto | Your Vercel deployment URL | Set automatically by Vercel |
+| `MONGODB_URI` | No | MongoDB connection string for chat persistence | `mongodb+srv://user:pass@cluster.mongodb.net` |
+| `MONGODB_DB` | No | Optional MongoDB database name | `lookout` |
 
 ## Troubleshooting
 

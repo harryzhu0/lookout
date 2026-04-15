@@ -48,6 +48,8 @@ Make sure to set these in your Vercel project settings:
 | `GITHUB_SECRET` | GitHub OAuth App Client Secret | `def456...` |
 | `NEXTAUTH_SECRET` | Random secret for JWT tokens | `your-random-secret-here` |
 | `NEXTAUTH_URL` | Your Vercel deployment URL | `https://your-app.vercel.app` |
+| `MONGODB_URI` | MongoDB connection string for chat storage | `mongodb+srv://user:pass@cluster.mongodb.net` |
+| `MONGODB_DB` | Optional database name | `lookout` |
 
 ## Features
 

@@ -74,18 +74,31 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : "Failed to save message";
     console.error("Error saving message:", err);
-    
-    // Don't leak implementation details
+
     if (errorMsg.includes("Chat history file too large")) {
       return NextResponse.json(
         { error: "Server storage limit exceeded" },
         { status: 507 }
       );
     }
-    
+
+    if (errorMsg.includes("Server storage unavailable")) {
+      return NextResponse.json(
+        { error: "Server storage unavailable. Use a database or external store instead of local file storage." },
+        { status: 500 }
+      );
+    }
+
+    if (errorMsg.startsWith("Message")) {
+      return NextResponse.json(
+        { error: errorMsg },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
-      { error: errorMsg.startsWith("Message") ? errorMsg : "Failed to save message" },
-      { status: 400 }
+      { error: "Failed to save message" },
+      { status: 500 }
     );
   }
 }

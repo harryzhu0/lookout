@@ -1,9 +1,36 @@
 import fs from "fs/promises";
 import path from "path";
+import { MongoClient } from "mongodb";
 
 const HISTORY_FILE = path.join(process.cwd(), "history.json");
-const MAX_MESSAGE_LENGTH = 10000; // Prevent DoS via huge messages
-const MAX_HISTORY_SIZE = 10_000_000; // ~10MB max file size
+const MAX_MESSAGE_LENGTH = parseInt(process.env.MAX_MESSAGE_LENGTH || "10000", 10);
+const MAX_HISTORY_SIZE = parseInt(process.env.MAX_HISTORY_SIZE || "10000000", 10);
+
+const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_DB = process.env.MONGODB_DB || "lookout";
+const MONGODB_COLLECTION = "chatMessages";
+
+let cachedClient: MongoClient | null = null;
+
+async function getMongoClient(): Promise<MongoClient> {
+  if (!MONGODB_URI) {
+    throw new Error("MONGODB_URI is not configured");
+  }
+
+  if (cachedClient) {
+    return cachedClient;
+  }
+
+  const client = new MongoClient(MONGODB_URI);
+  await client.connect();
+  cachedClient = client;
+  return client;
+}
+
+async function getMongoCollection() {
+  const client = await getMongoClient();
+  return client.db(MONGODB_DB).collection<ChatMessage>(MONGODB_COLLECTION);
+}
 
 export interface ChatMessage {
   sender: string;
@@ -21,16 +48,30 @@ function validateMessage(message: ChatMessage): boolean {
 }
 
 export async function getHistory(): Promise<ChatMessage[]> {
+  if (MONGODB_URI) {
+    try {
+      const collection = await getMongoCollection();
+      const docs = await collection
+        .find({})
+        .sort({ timestamp: 1 })
+        .toArray();
+      return docs.filter(validateMessage);
+    } catch (err) {
+      console.error("MongoDB history read failed:", err);
+      return [];
+    }
+  }
+
   try {
     const data = await fs.readFile(HISTORY_FILE, "utf-8");
     const parsed = JSON.parse(data);
-    
+
     // Validate data is an array
     if (!Array.isArray(parsed)) {
       console.warn("History file corrupted, resetting");
       return [];
     }
-    
+
     // Filter out invalid messages
     return parsed.filter(validateMessage);
   } catch (err) {
@@ -43,6 +84,12 @@ export async function saveMessage(message: ChatMessage): Promise<void> {
   // Validate message before saving
   if (!validateMessage(message)) {
     throw new Error("Invalid message format");
+  }
+
+  if (MONGODB_URI) {
+    const collection = await getMongoCollection();
+    await collection.insertOne(message);
+    return;
   }
 
   const history = await getHistory();
@@ -60,12 +107,38 @@ export async function saveMessage(message: ChatMessage): Promise<void> {
   if (jsonString.length > MAX_HISTORY_SIZE) {
     throw new Error("Chat history file too large");
   }
-  
-  await fs.writeFile(HISTORY_FILE, jsonString);
+
+  try {
+    await fs.writeFile(HISTORY_FILE, jsonString);
+  } catch (err) {
+    const writeError = err as NodeJS.ErrnoException;
+    if (writeError?.code === "EACCES" || writeError?.code === "EPERM") {
+      throw new Error(
+        "Server storage unavailable: this deployment does not support local file writes"
+      );
+    }
+    throw err;
+  }
 }
 
 export async function clearHistory(): Promise<void> {
-  await fs.writeFile(HISTORY_FILE, JSON.stringify([], null, 2));
+  if (MONGODB_URI) {
+    const collection = await getMongoCollection();
+    await collection.deleteMany({});
+    return;
+  }
+
+  try {
+    await fs.writeFile(HISTORY_FILE, JSON.stringify([], null, 2));
+  } catch (err) {
+    const writeError = err as NodeJS.ErrnoException;
+    if (writeError?.code === "EACCES" || writeError?.code === "EPERM") {
+      throw new Error(
+        "Server storage unavailable: this deployment does not support local file writes"
+      );
+    }
+    throw err;
+  }
 }
 
 export async function saveHistory(history: ChatMessage[]): Promise<void> {
@@ -79,7 +152,26 @@ export async function saveHistory(history: ChatMessage[]): Promise<void> {
   if (jsonString.length > MAX_HISTORY_SIZE) {
     throw new Error("Chat history file too large");
   }
-  
-  await fs.writeFile(HISTORY_FILE, jsonString);
+
+  if (MONGODB_URI) {
+    const collection = await getMongoCollection();
+    await collection.deleteMany({});
+    if (history.length > 0) {
+      await collection.insertMany(history);
+    }
+    return;
+  }
+
+  try {
+    await fs.writeFile(HISTORY_FILE, jsonString);
+  } catch (err) {
+    const writeError = err as NodeJS.ErrnoException;
+    if (writeError?.code === "EACCES" || writeError?.code === "EPERM") {
+      throw new Error(
+        "Server storage unavailable: this deployment does not support local file writes"
+      );
+    }
+    throw err;
+  }
 }
 

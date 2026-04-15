@@ -20,7 +20,7 @@ if (!session) {
         justifyContent: "center",
         minHeight: "100vh"
     }}>
-        <h1>LOOKOUT Chat</h1>
+        <h1>Welcome to Lookout</h1>
         <p>Sign in with GitHub to continue</p>
         <button 
         onClick={() => signIn("github")}
@@ -44,7 +44,7 @@ if (!session) {
 return (
     <div style={{ padding: 20, maxWidth: 800, margin: "0 auto" }}>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <h2>LOOKOUT Chat</h2>
+        <h2>Lookout</h2>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <span>Welcome, {session.user?.name || session.user?.email}</span>
         <button 
