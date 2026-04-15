@@ -1,55 +1,112 @@
-export const config = {
-  runtime: "edge",
-};
+import { auth } from "@/auth";
+import { getHistory, saveMessage, clearHistory, ChatMessage } from "@/lib/chatHistory";
+import { NextRequest, NextResponse } from "next/server";
 
-let connections: WebSocket[] = [];
+const MAX_MESSAGE_LENGTH = 10000;
 
-// In-memory history (Vercel Edge allows this — persists per region)
-let history: any[] = [];
+// Sanitize text input
+function sanitizeText(text: unknown): string {
+  if (typeof text !== "string") {
+    throw new Error("Message must be a string");
+  }
+  
+  // Trim and check length
+  const sanitized = text.trim();
+  if (sanitized.length === 0) {
+    throw new Error("Message cannot be empty");
+  }
+  if (sanitized.length > MAX_MESSAGE_LENGTH) {
+    throw new Error(`Message exceeds maximum length of ${MAX_MESSAGE_LENGTH}`);
+  }
+  
+  return sanitized;
+}
 
-export default function handler(req: Request) {
-  // Upgrade to WebSocket
-  const upgrade = req.headers.get("upgrade") || "";
-  if (upgrade.toLowerCase() !== "websocket") {
-    return new Response("Expected WebSocket", { status: 400 });
+// GET /api/chat - Retrieve chat history
+export async function GET(req: NextRequest) {
+  const session = await auth();
+
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const [client, server] = Object.values(new WebSocketPair());
-
-  server.accept();
-
-  // Send existing history to the new client
-  server.send(JSON.stringify({ type: "history", data: history }));
-
-  // Add to connection list
-  connections.push(server);
-
-  server.addEventListener("message", (event) => {
-    try {
-      const msg = JSON.parse(event.data);
-
-      // Save to history
-      history.push(msg);
-
-      // Broadcast to all clients
-      for (const ws of connections) {
-        try {
-          ws.send(JSON.stringify({ type: "message", data: msg }));
-        } catch {
-          // Remove dead sockets
-        }
-      }
-    } catch (err) {
-      console.error("Invalid message", err);
-    }
-  });
-
-  server.addEventListener("close", () => {
-    connections = connections.filter((ws) => ws !== server);
-  });
-
-  return new Response(null, {
-    status: 101,
-    webSocket: client,
-  });
+  try {
+    const history = await getHistory();
+    return NextResponse.json({ history });
+  } catch (err) {
+    console.error("Error reading chat history:", err);
+    return NextResponse.json(
+      { error: "Failed to retrieve history" },
+      { status: 500 }
+    );
+  }
 }
+
+// POST /api/chat - Add a new message
+export async function POST(req: NextRequest) {
+  const session = await auth();
+
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const body = await req.json();
+    
+    if (!body || typeof body !== "object") {
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 }
+      );
+    }
+
+    const text = sanitizeText(body.text);
+
+    const message: ChatMessage = {
+      sender: session.user?.name || session.user?.email || "Anonymous",
+      text,
+      timestamp: Date.now(),
+    };
+
+    await saveMessage(message);
+
+    return NextResponse.json({ message }, { status: 201 });
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : "Failed to save message";
+    console.error("Error saving message:", err);
+    
+    // Don't leak implementation details
+    if (errorMsg.includes("Chat history file too large")) {
+      return NextResponse.json(
+        { error: "Server storage limit exceeded" },
+        { status: 507 }
+      );
+    }
+    
+    return NextResponse.json(
+      { error: errorMsg.startsWith("Message") ? errorMsg : "Failed to save message" },
+      { status: 400 }
+    );
+  }
+}
+
+// DELETE /api/chat - Clear chat history
+export async function DELETE(req: NextRequest) {
+  const session = await auth();
+
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    await clearHistory();
+    return NextResponse.json({ message: "Chat history cleared" });
+  } catch (err) {
+    console.error("Error clearing history:", err);
+    return NextResponse.json(
+      { error: "Failed to clear history" },
+      { status: 500 }
+    );
+  }
+}
+

@@ -1,35 +1,110 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 export type ChatMessage = {
-    sender: string;
-    text: string;
-    timestamp: number;
+  sender: string;
+  text: string;
+  timestamp: number;
 };
 
-export default function chat() {
-    const [messages, setMessages] = useState<ChatMessage[]>([]);
-    const wsRef = useRef<WebSocket | null>(null);
+export default function useChat() {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        const socket = new WebSocket("ws://localhost:8080");
-        // const socket = new WebSocket("https://curly-space-tribble-5g7qrrxwxrw427wqg-8080.app.github.dev/")
-        wsRef.current = socket;
-
-        socket.onmessage = (event) => {
-            const msg: ChatMessage = JSON.parse(event.data);
-            setMessages((prev) => [...prev, msg]);
-        };
-
-        return () => socket.close();
-    }, []);
-
-    const sendMessage = (sender: string, text: string) => {
-        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-            wsRef.current.send(JSON.stringify({ sender, text }));
+  // Load chat history on mount
+  useEffect(() => {
+    const loadHistory = async () => {
+      try {
+        const response = await fetch("/api/chat");
+        if (response.status === 401) {
+          setError("Please sign in to view chat history");
+          return;
         }
+        if (!response.ok) {
+          throw new Error("Failed to load chat history");
+        }
+        const data = await response.json();
+        setMessages(data.history);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error");
+      }
     };
 
-    return { messages, sendMessage };
+    loadHistory();
+  }, []);
+
+  const sendMessage = useCallback(async (text: string) => {
+    if (!text.trim()) {
+      setError("Message cannot be empty");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text: text.trim() }),
+      });
+
+      if (response.status === 401) {
+        setError("Your session expired. Please sign in again.");
+        return;
+      }
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to send message");
+      }
+
+      const data = await response.json();
+      setMessages((prev) => [...prev, data.message]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to send message";
+      setError(msg);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const clearHistory = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to clear history");
+      }
+
+      setMessages([]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to clear history");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  return {
+    messages,
+    sendMessage,
+    clearHistory,
+    isLoading,
+    error,
+    clearError,
+  };
 }
+
