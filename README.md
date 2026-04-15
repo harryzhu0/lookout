@@ -58,9 +58,25 @@ Make sure to set these in your Vercel project settings:
 - TypeScript support
 - Next.js 16 with App Router
 
-## Tech Stack
+## Troubleshooting
 
-- **Frontend**: Next.js 16, React 18, TypeScript
-- **Authentication**: NextAuth.js with GitHub provider
-- **Styling**: Inline styles (can be upgraded to Tailwind/CSS modules)
-- **Deployment**: Vercel (optimized configuration included)
+### Server Config Error
+
+If you encounter a "server config error", it's usually caused by missing or invalid environment variables:
+
+1. **Check that `.env.local` exists** and contains all required variables
+2. **Verify GitHub OAuth credentials** are correct
+3. **Ensure `NEXTAUTH_SECRET` is set** (generate with `openssl rand -base64 32`)
+4. **Restart the dev server** after changing environment variables
+
+### Build Errors
+
+- Make sure all dependencies are installed: `npm install`
+- Clear Next.js cache: `rm -rf .next`
+- Check TypeScript errors: `npm run build`
+
+### Authentication Issues
+
+- Verify GitHub OAuth app URLs match your deployment domain
+- Check that callback URLs are correctly configured
+- Ensure `NEXTAUTH_URL` matches your deployment URL

@@ -1,14 +1,28 @@
 import NextAuth from "next-auth";
 import GitHub from "next-auth/providers/github";
 
+// Validate required environment variables
+const githubId = process.env.GITHUB_ID;
+const githubSecret = process.env.GITHUB_SECRET;
+const nextAuthSecret = process.env.NEXTAUTH_SECRET;
+
+if (!githubId || !githubSecret) {
+  throw new Error("Missing required environment variables: GITHUB_ID and GITHUB_SECRET must be set");
+}
+
+if (!nextAuthSecret) {
+  throw new Error("Missing required environment variable: NEXTAUTH_SECRET must be set");
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     GitHub({
-      clientId: process.env.GITHUB_ID,
-      clientSecret: process.env.GITHUB_SECRET,
+      clientId: githubId,
+      clientSecret: githubSecret,
       allowDangerousEmailAccountLinking: false,
     }),
   ],
+  secret: nextAuthSecret,
   pages: {
     signIn: "/",
     error: "/",

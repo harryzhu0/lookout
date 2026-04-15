@@ -55,9 +55,32 @@ This tells Vercel to use the Next.js framework, which automatically handles:
 
 ## Environment Variables Reference
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `GITHUB_ID` | Yes | GitHub OAuth Client ID |
-| `GITHUB_SECRET` | Yes | GitHub OAuth Client Secret |
-| `NEXTAUTH_SECRET` | Yes | Random secret for JWT tokens |
-| `NEXTAUTH_URL` | Auto | Vercel sets this automatically |
+| Variable | Required | Description | How to get it |
+|----------|----------|-------------|---------------|
+| `GITHUB_ID` | Yes | GitHub OAuth Client ID | From GitHub OAuth App settings |
+| `GITHUB_SECRET` | Yes | GitHub OAuth Client Secret | From GitHub OAuth App settings |
+| `NEXTAUTH_SECRET` | Yes | Random secret for JWT tokens | Generate with `openssl rand -base64 32` |
+| `NEXTAUTH_URL` | Auto | Your Vercel deployment URL | Set automatically by Vercel |
+
+## Troubleshooting
+
+### Server Config Error
+
+If you see "server config error" during deployment:
+
+1. **Check all environment variables are set** in Vercel project settings
+2. **Verify GitHub OAuth credentials** are correct
+3. **Ensure NEXTAUTH_SECRET is strong** (at least 32 characters)
+4. **Redeploy** after updating environment variables
+
+### Build Failures
+
+- Check Vercel build logs for specific errors
+- Ensure all environment variables are set before deployment
+- Verify GitHub OAuth app is properly configured
+
+### Authentication Issues
+
+- Confirm GitHub OAuth callback URLs include your Vercel domain
+- Check that `NEXTAUTH_URL` is set correctly (usually automatic)
+- Verify OAuth app permissions are sufficient
