@@ -13,27 +13,32 @@ export default function useChat() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load chat history on mount
-  useEffect(() => {
-    const loadHistory = async () => {
-      try {
-        const response = await fetch("/api/chat");
-        if (response.status === 401) {
-          setError("Please sign in to view chat history");
-          return;
-        }
-        if (!response.ok) {
-          throw new Error("Failed to load chat history");
-        }
-        const data = await response.json();
-        setMessages(data.history);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
+  const loadHistory = useCallback(async () => {
+    try {
+      const response = await fetch("/api/chat");
+      if (response.status === 401) {
+        setError("Please sign in to view chat history");
+        return;
       }
-    };
-
-    loadHistory();
+      if (!response.ok) {
+        throw new Error("Failed to load chat history");
+      }
+      const data = await response.json();
+      setMessages(data.history);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error");
+    }
   }, []);
+
+  useEffect(() => {
+    loadHistory();
+
+    const interval = setInterval(() => {
+      loadHistory();
+    }, 200);
+
+    return () => clearInterval(interval);
+  }, [loadHistory]);
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim()) {
