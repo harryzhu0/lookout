@@ -1,20 +1,21 @@
 import { Providers } from "./providers";
+import "./globals.css";
 
 export const metadata = {
-    title: "LOOKOUT",
-    description: "Chat app",
+  title: "LOOKOUT - Connect, Study, Play",
+  description: "A modern collaboration platform for teams and study groups",
 };
 
 export default function RootLayout({
-    children,
+  children,
 }: {
-    children: React.ReactNode;
+  children: React.ReactNode;
 }) {
-    return (
-        <html lang="en">
-            <body>
-                <Providers>{children}</Providers>
-            </body>
-        </html>
-    );
+  return (
+    <html lang="en">
+      <body>
+        <Providers>{children}</Providers>
+      </body>
+    </html>
+  );
 }
