@@ -1,8 +1,24 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Channel, ChatMessage } from "@/types";
-import { useSession } from "next-auth/react";
+
+interface SimpleChannel {
+  id: string;
+  workspaceId: string;
+  name: string;
+  type: "public" | "private";
+  messages: any[];
+  createdAt: number;
+}
+
+interface SimpleMessage {
+  id: string;
+  channelId: string;
+  senderId: string;
+  senderName: string;
+  text: string;
+  timestamp: number;
+}
 
 interface ChatsViewProps {
   workspaceId: string;
@@ -10,10 +26,11 @@ interface ChatsViewProps {
 }
 
 export default function ChatsView({ workspaceId, userId }: ChatsViewProps) {
-  const { data: session } = useSession();
-  const [channels, setChannels] = useState<Channel[]>([]);
-  const [activeChannel, setActiveChannel] = useState<Channel | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [channels, setChannels] = useState<SimpleChannel[]>([]);
+  const [activeChannel, setActiveChannel] = useState<SimpleChannel | null>(
+    null,
+  );
+  const [messages, setMessages] = useState<SimpleMessage[]>([]);
   const [input, setInput] = useState("");
   const [showCreateChannel, setShowCreateChannel] = useState(false);
   const [newChannelName, setNewChannelName] = useState("");
@@ -22,11 +39,19 @@ export default function ChatsView({ workspaceId, userId }: ChatsViewProps) {
   );
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus input when channel changes
+  useEffect(() => {
+    if (activeChannel) {
+      inputRef.current?.focus();
+    }
+  }, [activeChannel]);
 
   // Load channels
   useEffect(() => {
     if (workspaceId) {
-      fetch(`/api/workspaces/${workspaceId}/channels`)
+      fetch(`/api/channels?workspaceId=${workspaceId}`)
         .then((res) => res.json())
         .then((data) => {
           setChannels(data.channels || []);
@@ -70,12 +95,16 @@ export default function ChatsView({ workspaceId, userId }: ChatsViewProps) {
         const newMessage = await res.json();
         setMessages((prev) => [...prev, newMessage]);
         setInput("");
+        // Keep focus on input after sending
+        inputRef.current?.focus();
       } else {
         const error = await res.json();
         console.error("Failed to send message:", error);
+        alert("Failed to send message: " + (error.error || "Unknown error"));
       }
     } catch (error) {
       console.error("Error sending message:", error);
+      alert("Network error while sending message");
     } finally {
       setIsLoading(false);
     }
@@ -86,29 +115,69 @@ export default function ChatsView({ workspaceId, userId }: ChatsViewProps) {
 
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/workspaces/${workspaceId}/channels`, {
+      const response = await fetch(`/api/channels`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           name: newChannelName,
           type: newChannelType,
-          creatorId: userId,
+          workspaceId: workspaceId,
         }),
       });
 
-      if (res.ok) {
-        const newChannel = await res.json();
-        setChannels((prev) => [...prev, newChannel]);
+      if (response.ok) {
+        const data = await response.json();
+        setChannels((prev) => [...prev, data]);
         setShowCreateChannel(false);
         setNewChannelName("");
       } else {
-        const error = await res.json();
+        const error = await response.json();
         console.error("Failed to create channel:", error);
+        alert(`Failed to create channel: ${error.error || "Unknown error"}`);
       }
     } catch (error) {
       console.error("Error creating channel:", error);
+      alert("Network error while creating channel");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Group messages by sender for compact display
+  const getGroupedMessages = () => {
+    const grouped: Array<{
+      messages: SimpleMessage[];
+      senderName: string;
+      senderId: string;
+    }> = [];
+
+    for (let i = 0; i < messages.length; i++) {
+      const current = messages[i];
+      const previous = messages[i - 1];
+
+      // Check if this message is from the same sender as previous
+      if (previous && previous.senderId === current.senderId) {
+        // Add to existing group
+        grouped[grouped.length - 1].messages.push(current);
+      } else {
+        // Start new group
+        grouped.push({
+          messages: [current],
+          senderName: current.senderName,
+          senderId: current.senderId,
+        });
+      }
+    }
+
+    return grouped;
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
     }
   };
 
@@ -169,19 +238,66 @@ export default function ChatsView({ workspaceId, userId }: ChatsViewProps) {
                   No messages yet. Start the conversation!
                 </div>
               ) : (
-                messages.map((msg, idx) => (
-                  <div key={msg.id || idx} className="message">
-                    <div className="message-avatar">
-                      {msg.senderName?.[0]?.toUpperCase() || "?"}
-                    </div>
-                    <div className="message-content">
-                      <div className="message-header">
-                        <span className="message-sender">{msg.senderName}</span>
-                        <span className="message-time">
-                          {new Date(msg.timestamp).toLocaleTimeString()}
-                        </span>
+                getGroupedMessages().map((group, groupIndex) => (
+                  <div
+                    key={groupIndex}
+                    className="message-group"
+                    style={{ marginBottom: "16px" }}
+                  >
+                    {/* Show avatar and name only for the first message in group */}
+                    <div
+                      className="message"
+                      style={{ display: "flex", gap: "12px" }}
+                    >
+                      <div
+                        className="message-avatar"
+                        style={{
+                          width: "40px",
+                          height: "40px",
+                          borderRadius: "50%",
+                          background: "#667eea",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontWeight: "bold",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {group.senderName?.[0]?.toUpperCase() || "?"}
                       </div>
-                      <div className="message-text">{msg.text}</div>
+                      <div style={{ flex: 1 }}>
+                        <div
+                          className="message-header"
+                          style={{ marginBottom: "4px" }}
+                        >
+                          <span
+                            className="message-sender"
+                            style={{ fontWeight: "bold", color: "#667eea" }}
+                          >
+                            {group.senderName}
+                          </span>
+                          <span
+                            style={{
+                              marginLeft: "10px",
+                              fontSize: "0.75rem",
+                              opacity: 0.6,
+                            }}
+                          >
+                            {new Date(
+                              group.messages[0].timestamp,
+                            ).toLocaleTimeString()}
+                          </span>
+                        </div>
+                        {group.messages.map((msg, idx) => (
+                          <div
+                            key={msg.id || idx}
+                            className="message-text"
+                            style={{ marginTop: idx > 0 ? "4px" : 0 }}
+                          >
+                            {msg.text}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 ))
@@ -191,10 +307,11 @@ export default function ChatsView({ workspaceId, userId }: ChatsViewProps) {
 
             <div className="message-input-area">
               <input
+                ref={inputRef}
                 className="message-input"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && sendMessage()}
+                onKeyPress={handleKeyPress}
                 placeholder={`Message #${activeChannel.name}`}
                 disabled={isLoading}
               />

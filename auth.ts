@@ -1,34 +1,32 @@
 import NextAuth from "next-auth";
 import GitHub from "next-auth/providers/github";
 import crypto from "crypto";
-
-// Store for user UIDs (in production, use a database)
 import fs from "fs/promises";
 import path from "path";
 
-const USERS_FILE = path.join(process.cwd(), "users.json");
+const DATA_DIR = path.join(process.cwd(), "data");
 
-export interface AppUser {
-  githubId: string;
-  uid: string;
-  name: string;
-  email: string;
-  avatar?: string;
-  createdAt: number;
-  currentWorkspace?: string;
-}
-
-async function getUsers(): Promise<Record<string, AppUser>> {
+// Helper to save user data
+async function saveUserToStorage(user: any) {
   try {
-    const data = await fs.readFile(USERS_FILE, "utf-8");
-    return JSON.parse(data);
-  } catch {
-    return {};
-  }
-}
+    await fs.mkdir(DATA_DIR, { recursive: true });
+    const usersFile = path.join(DATA_DIR, "users.json");
 
-async function saveUsers(users: Record<string, AppUser>) {
-  await fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2));
+    let users = {};
+    try {
+      const data = await fs.readFile(usersFile, "utf-8");
+      users = JSON.parse(data);
+    } catch {
+      // File doesn't exist yet
+    }
+
+    if (!users[user.uid]) {
+      users[user.uid] = user;
+      await fs.writeFile(usersFile, JSON.stringify(users, null, 2));
+    }
+  } catch (error) {
+    console.error("Error saving user:", error);
+  }
 }
 
 // Runtime validation function
@@ -68,31 +66,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       validateEnvironmentVariables();
 
       if (account && profile) {
-        const users = await getUsers();
-        const githubId =
-          profile.id?.toString() || profile.sub || account.providerAccountId;
+        // Generate a permanent UID for the user
+        const uid = crypto.randomBytes(16).toString("hex");
+        token.uid = uid;
+        token.name = profile.name || profile.login || "User";
+        token.email = profile.email || "";
+        token.avatar = profile.avatar_url;
 
-        let user = Object.values(users).find((u) => u.githubId === githubId);
-
-        if (!user) {
-          // First time user - generate permanent UID
-          const uid = crypto.randomBytes(16).toString("hex");
-          user = {
-            githubId: githubId,
-            uid: uid,
-            name: profile.name || profile.login || "User",
-            email: profile.email || "",
-            avatar: profile.avatar_url,
-            createdAt: Date.now(),
-          };
-          users[uid] = user;
-          await saveUsers(users);
-        }
-
-        token.uid = user.uid;
-        token.name = user.name;
-        token.email = user.email;
-        token.avatar = user.avatar;
+        // Save user to storage
+        await saveUserToStorage({
+          uid: uid,
+          name: token.name,
+          email: token.email,
+          avatar: token.avatar,
+          githubId: profile.id,
+          createdAt: Date.now(),
+        });
       }
       return token;
     },
@@ -114,6 +103,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60,
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
 });

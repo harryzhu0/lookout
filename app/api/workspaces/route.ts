@@ -1,7 +1,11 @@
 import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
-import { getWorkspaces, saveWorkspace, generateId } from "@/lib/storage";
-import { Workspace } from "@/types";
+import {
+  getWorkspaces,
+  saveWorkspace,
+  generateId,
+  SimpleWorkspace,
+} from "@/lib/simpleStorage";
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,6 +21,11 @@ export async function GET(req: NextRequest) {
         ws.ownerId === session.user?.id,
     );
 
+    console.log(
+      "GET /api/workspaces - returning:",
+      userWorkspaces.length,
+      "workspaces",
+    );
     return NextResponse.json({ workspaces: userWorkspaces });
   } catch (error) {
     console.error("Error fetching workspaces:", error);
@@ -42,17 +51,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const workspace: Workspace = {
+    const workspace: SimpleWorkspace = {
       id: generateId(),
       name: name.trim(),
       ownerId: session.user?.id as string,
-      admins: [session.user?.id as string],
       members: [session.user?.id as string],
       channels: [],
       createdAt: Date.now(),
     };
 
     await saveWorkspace(workspace);
+    console.log(
+      "POST /api/workspaces - created:",
+      workspace.id,
+      workspace.name,
+    );
     return NextResponse.json({ workspace }, { status: 201 });
   } catch (error) {
     console.error("Error creating workspace:", error);

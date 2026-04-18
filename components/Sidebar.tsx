@@ -2,13 +2,13 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useState } from "react";
-import { Workspace } from "@/types";
+import { SimpleWorkspace } from "@/lib/simpleStorage";
 
 interface SidebarProps {
   activeNav: string;
   setActiveNav: (nav: string) => void;
-  currentWorkspace: Workspace | null;
-  workspaces: Workspace[];
+  currentWorkspace: SimpleWorkspace | null;
+  workspaces: SimpleWorkspace[];
   onCreateWorkspace: (name: string) => void;
 }
 
@@ -30,6 +30,14 @@ export default function Sidebar({
   const { data: session } = useSession();
   const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
+
+  const handleWorkspaceSelect = (workspace: SimpleWorkspace) => {
+    console.log("Selecting workspace:", workspace.id, workspace.name);
+    // Dispatch custom event with the full workspace object
+    window.dispatchEvent(
+      new CustomEvent("workspaceChange", { detail: workspace }),
+    );
+  };
 
   return (
     <div className="sidebar">
@@ -81,6 +89,7 @@ export default function Sidebar({
         {workspaces.map((ws) => (
           <div
             key={ws.id}
+            onClick={() => handleWorkspaceSelect(ws)}
             style={{
               padding: "8px 12px",
               borderRadius: "6px",

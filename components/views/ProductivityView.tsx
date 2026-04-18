@@ -108,14 +108,14 @@ export default function ProductivityView() {
             textShadow: "2px 2px 4px rgba(0,0,0,0.5)",
           }}
         >
-          🌅 Focus Mode
+          Focus Mode
         </h1>
 
         <div
           style={{
             background: "rgba(255,255,255,0.15)",
             backdropFilter: "blur(10px)",
-            borderRadius: "50%",
+            borderRadius: "100px",
             padding: "40px",
             marginBottom: "30px",
           }}
@@ -143,15 +143,15 @@ export default function ProductivityView() {
         >
           {!isActive ? (
             <button onClick={startTimer} style={buttonStyle("#4caf50")}>
-              ▶ Start
+              Start
             </button>
           ) : (
             <button onClick={pauseTimer} style={buttonStyle("#ff9800")}>
-              ⏸ Pause
+              Pause
             </button>
           )}
           <button onClick={resetTimer} style={buttonStyle("#f44336")}>
-            🔄 Reset
+            Reset
           </button>
         </div>
 
@@ -186,7 +186,7 @@ export default function ProductivityView() {
             onClick={toggleMusic}
             style={buttonStyle(isPlaying ? "#ff9800" : "#667eea")}
           >
-            {isPlaying ? "⏸ Stop Music" : "🎵 Play Focus Music"}
+            {isPlaying ? "Stop Music" : "Play Focus Music"}
           </button>
         </div>
 

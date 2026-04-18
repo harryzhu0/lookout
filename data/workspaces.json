@@ -1,15 +1,22 @@
 {
-  "c41bb748bf6d442eee1ff6090a16a6e2": {
-    "id": "c41bb748bf6d442eee1ff6090a16a6e2",
+  "ae76e05fe09a4adf8e2dbfe18a25698b": {
+    "id": "ae76e05fe09a4adf8e2dbfe18a25698b",
     "name": "Lookout Developer Team",
     "ownerId": "152b4ca34dcac55f998fba2761c8b949",
-    "admins": [
-      "152b4ca34dcac55f998fba2761c8b949"
-    ],
     "members": [
       "152b4ca34dcac55f998fba2761c8b949"
     ],
-    "channels": [],
-    "createdAt": 1776458212979
+    "channels": [
+      {
+        "id": "bf9fac9a0f9e27d5057102270058148f",
+        "workspaceId": "ae76e05fe09a4adf8e2dbfe18a25698b",
+        "name": "general",
+        "type": "public",
+        "messages": [],
+        "createdAt": 1776474498630
+      }
+    ],
+    "createdAt": 1776474488820,
+    "inviteCode": "71fbf72fff5989ab"
   }
 }

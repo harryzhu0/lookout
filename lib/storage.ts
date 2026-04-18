@@ -63,16 +63,22 @@ export async function getChannels(): Promise<Record<string, Channel>> {
   return readJSON<Record<string, Channel>>("channels.json");
 }
 
+// ... (keep all existing imports and other functions)
+
 export async function saveChannel(channel: Channel): Promise<void> {
   const channels = await getChannels();
   channels[channel.id] = channel;
   await writeJSON("channels.json", channels);
+  console.log("Channel saved:", channel.id, channel.name);
 
   // Also add channel to workspace
   const workspace = await getWorkspace(channel.workspaceId);
-  if (workspace && !workspace.channels.includes(channel.id)) {
-    workspace.channels.push(channel.id);
-    await saveWorkspace(workspace);
+  if (workspace) {
+    if (!workspace.channels.includes(channel.id)) {
+      workspace.channels.push(channel.id);
+      await saveWorkspace(workspace);
+      console.log("Channel added to workspace:", workspace.name);
+    }
   }
 }
 

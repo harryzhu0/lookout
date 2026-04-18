@@ -1,7 +1,36 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { StudyGroup, StudyPost, StudyComment } from "@/types";
+
+interface StudyGroup {
+  id: string;
+  workspaceId: string;
+  name: string;
+  description: string;
+  createdBy: string;
+  creatorName: string;
+  members: string[];
+  posts: StudyPost[];
+  createdAt: number;
+}
+
+interface StudyPost {
+  id: string;
+  title: string;
+  content: string;
+  authorId: string;
+  authorName: string;
+  comments: StudyComment[];
+  timestamp: number;
+}
+
+interface StudyComment {
+  id: string;
+  content: string;
+  authorId: string;
+  authorName: string;
+  timestamp: number;
+}
 
 interface StudyViewProps {
   workspaceId: string;
@@ -11,102 +40,147 @@ interface StudyViewProps {
 export default function StudyView({ workspaceId, userId }: StudyViewProps) {
   const [groups, setGroups] = useState<StudyGroup[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<StudyGroup | null>(null);
+  const [selectedPost, setSelectedPost] = useState<StudyPost | null>(null);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [showCreatePost, setShowCreatePost] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupDesc, setNewGroupDesc] = useState("");
-  const [showCreatePost, setShowCreatePost] = useState(false);
   const [postTitle, setPostTitle] = useState("");
   const [postContent, setPostContent] = useState("");
-  const [selectedPost, setSelectedPost] = useState<StudyPost | null>(null);
   const [commentText, setCommentText] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
+  // Load study groups
   useEffect(() => {
-    fetch(`/api/workspaces/${workspaceId}/study-groups`)
-      .then((res) => res.json())
-      .then((data) => setGroups(data.groups))
-      .catch(console.error);
+    if (workspaceId) {
+      fetch(`/api/study-groups?workspaceId=${workspaceId}`)
+        .then((res) => res.json())
+        .then((data) => setGroups(data.groups || []))
+        .catch(console.error);
+    }
   }, [workspaceId]);
 
   const createGroup = async () => {
-    if (!newGroupName.trim()) return;
-    const res = await fetch(`/api/workspaces/${workspaceId}/study-groups`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: newGroupName,
-        description: newGroupDesc,
-        creatorId: userId,
-      }),
-    });
-    if (res.ok) {
-      const newGroup = await res.json();
-      setGroups([...groups, newGroup]);
-      setShowCreateGroup(false);
-      setNewGroupName("");
-      setNewGroupDesc("");
+    if (!newGroupName.trim() || isLoading) return;
+
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/study-groups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newGroupName,
+          description: newGroupDesc,
+          workspaceId: workspaceId,
+          creatorId: userId,
+        }),
+      });
+
+      if (res.ok) {
+        const group = await res.json();
+        setGroups([...groups, group]);
+        setShowCreateGroup(false);
+        setNewGroupName("");
+        setNewGroupDesc("");
+      } else {
+        const error = await res.json();
+        alert("Failed to create group: " + (error.error || "Unknown error"));
+      }
+    } catch (error) {
+      console.error("Error creating group:", error);
+      alert("Network error while creating group");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const createPost = async () => {
-    if (!selectedGroup || !postTitle.trim()) return;
-    const res = await fetch(`/api/study-groups/${selectedGroup.id}/posts`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: postTitle,
-        content: postContent,
-        authorId: userId,
-      }),
-    });
-    if (res.ok) {
-      const newPost = await res.json();
-      const updatedGroup = {
-        ...selectedGroup,
-        posts: [...selectedGroup.posts, newPost],
-      };
-      setSelectedGroup(updatedGroup);
-      setGroups(
-        groups.map((g) => (g.id === updatedGroup.id ? updatedGroup : g)),
-      );
-      setShowCreatePost(false);
-      setPostTitle("");
-      setPostContent("");
+    if (!postTitle.trim() || isLoading) return;
+
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/study-posts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: postTitle,
+          content: postContent,
+          groupId: selectedGroup?.id,
+          authorId: userId,
+        }),
+      });
+
+      if (res.ok) {
+        const post = await res.json();
+        const updatedGroup = {
+          ...selectedGroup!,
+          posts: [...selectedGroup!.posts, post],
+        };
+        setSelectedGroup(updatedGroup);
+        setGroups(
+          groups.map((g) => (g.id === updatedGroup.id ? updatedGroup : g)),
+        );
+        setShowCreatePost(false);
+        setPostTitle("");
+        setPostContent("");
+      } else {
+        const error = await res.json();
+        alert("Failed to create post: " + (error.error || "Unknown error"));
+      }
+    } catch (error) {
+      console.error("Error creating post:", error);
+      alert("Network error while creating post");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const addComment = async () => {
-    if (!selectedPost || !selectedGroup || !commentText.trim()) return;
-    const res = await fetch(
-      `/api/study-groups/${selectedGroup.id}/posts/${selectedPost.id}/comments`,
-      {
+    if (!commentText.trim() || isLoading) return;
+
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/study-comments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: commentText, authorId: userId }),
-      },
-    );
-    if (res.ok) {
-      const newComment = await res.json();
-      const updatedPost = {
-        ...selectedPost,
-        comments: [...selectedPost.comments, newComment],
-      };
-      setSelectedPost(updatedPost);
-      const updatedGroup = {
-        ...selectedGroup,
-        posts: selectedGroup.posts.map((p) =>
-          p.id === updatedPost.id ? updatedPost : p,
-        ),
-      };
-      setSelectedGroup(updatedGroup);
-      setGroups(
-        groups.map((g) => (g.id === updatedGroup.id ? updatedGroup : g)),
-      );
-      setCommentText("");
+        body: JSON.stringify({
+          content: commentText,
+          groupId: selectedGroup?.id,
+          postId: selectedPost?.id,
+          authorId: userId,
+        }),
+      });
+
+      if (res.ok) {
+        const comment = await res.json();
+        const updatedPost = {
+          ...selectedPost!,
+          comments: [...selectedPost!.comments, comment],
+        };
+        setSelectedPost(updatedPost);
+
+        const updatedGroup = {
+          ...selectedGroup!,
+          posts: selectedGroup!.posts.map((p) =>
+            p.id === updatedPost.id ? updatedPost : p,
+          ),
+        };
+        setSelectedGroup(updatedGroup);
+        setCommentText("");
+      } else {
+        const error = await res.json();
+        alert("Failed to add comment: " + (error.error || "Unknown error"));
+      }
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      alert("Network error while adding comment");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Post detail view
-  if (selectedPost) {
+  if (selectedPost && selectedGroup) {
     return (
       <div style={{ flex: 1, overflowY: "auto", padding: "24px" }}>
         <button
@@ -121,8 +195,9 @@ export default function StudyView({ workspaceId, userId }: StudyViewProps) {
             cursor: "pointer",
           }}
         >
-          ← Back to Group
+          ← Back to Posts
         </button>
+
         <div
           style={{
             background: "#0f3460",
@@ -144,31 +219,37 @@ export default function StudyView({ workspaceId, userId }: StudyViewProps) {
         <h3 style={{ marginBottom: 16 }}>
           Comments ({selectedPost.comments.length})
         </h3>
-        {selectedPost.comments.map((comment) => (
-          <div
-            key={comment.id}
-            style={{
-              background: "#1a1a2e",
-              borderRadius: "8px",
-              padding: "12px",
-              marginBottom: 12,
-            }}
-          >
-            <strong>{comment.authorName}</strong>{" "}
-            <span style={{ opacity: 0.6, fontSize: "0.75rem" }}>
-              {new Date(comment.timestamp).toLocaleString()}
-            </span>
-            <p style={{ marginTop: 8 }}>{comment.content}</p>
+        {selectedPost.comments.length === 0 ? (
+          <div style={{ textAlign: "center", opacity: 0.6, padding: "20px" }}>
+            No comments yet. Be the first to comment!
           </div>
-        ))}
+        ) : (
+          selectedPost.comments.map((comment) => (
+            <div
+              key={comment.id}
+              style={{
+                background: "#1a1a2e",
+                borderRadius: "8px",
+                padding: "12px",
+                marginBottom: 12,
+              }}
+            >
+              <strong>{comment.authorName}</strong>{" "}
+              <span style={{ opacity: 0.6, fontSize: "0.75rem" }}>
+                {new Date(comment.timestamp).toLocaleString()}
+              </span>
+              <p style={{ marginTop: 8 }}>{comment.content}</p>
+            </div>
+          ))
+        )}
 
         <div style={{ marginTop: 20, display: "flex", gap: 10 }}>
           <input
             type="text"
             value={commentText}
             onChange={(e) => setCommentText(e.target.value)}
-            placeholder="Add a comment..."
             onKeyPress={(e) => e.key === "Enter" && addComment()}
+            placeholder="Add a comment..."
             style={{
               flex: 1,
               padding: "10px",
@@ -384,6 +465,7 @@ export default function StudyView({ workspaceId, userId }: StudyViewProps) {
               >
                 <span>📝 {group.posts.length} posts</span>
                 <span>👥 {group.members.length} members</span>
+                <span>👤 Created by {group.creatorName}</span>
               </div>
             </div>
           ))}
